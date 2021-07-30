@@ -1,9 +1,8 @@
-package Hanjie;
-
 import java.util.Scanner;
 import java.util.ArrayList;
 
-public class Hanjie {
+public class Picross {
+
     String[][] board;
     boolean[][] hLocked;
     boolean[][] vLocked;
@@ -22,7 +21,7 @@ public class Hanjie {
         also calls helper methods to initialize some of the more complex instance variables
     accepts the ArrayLists of notations for the rows and columns as parameters
     */
-    public Hanjie(ArrayList<ArrayList<Integer>> rows, ArrayList<ArrayList<Integer>> cols) {
+    public Picross(ArrayList<ArrayList<Integer>> rows, ArrayList<ArrayList<Integer>> cols) {
         this.rows = rows;
         this.cols = cols;
         this.length = rows.size();

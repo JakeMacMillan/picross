@@ -1,11 +1,9 @@
-package Hanjie;
-
 import java.util.Scanner;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class HanjieRunner {
+public class PicrossRunner {
 
     public static String print2DArr(ArrayList<ArrayList<Integer>> arr) {
         String myStr = "";
@@ -49,7 +47,7 @@ public class HanjieRunner {
 
         // System.out.println("Rows:\n" + print2DArr(rows));
         // System.out.println("Cols:\n" + print2DArr(cols));
-        Hanjie myGame = new Hanjie(rows, cols);
+        Picross myGame = new Picross(rows, cols);
         myGame.playGame();
     }
 }
