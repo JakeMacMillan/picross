@@ -12,6 +12,8 @@ public class Picross {
     ArrayList<ArrayList<Boolean>> completedCols;
     ArrayList<ArrayList<Integer>> rows;
     ArrayList<ArrayList<Integer>> cols;
+    ArrayList<ArrayList<ArrayList<Integer>>> rAvails;
+    ArrayList<ArrayList<ArrayList<Integer>>> cAvails;
     int greatestRows;
     int greatestCols;
 
@@ -33,6 +35,8 @@ public class Picross {
         this.completedCols = new ArrayList<ArrayList<Boolean>>();
         this.greatestRows = 0;
         this.greatestCols = 0;
+        this.rAvails = initAvails(rows);
+        this.cAvails = initAvails(cols);
         initBoard();
         fillRequirements();
         initCompleted();
@@ -89,6 +93,25 @@ public class Picross {
             completedRows.add(row);
             completedCols.add(col);
         }
+    }
+
+    /*
+    initAvails is used to initialize the two Avails ArrayLists with a full list of available spaces for each number in the puzzle
+    */
+    private ArrayList<ArrayList<ArrayList<Integer>>> initAvails(ArrayList<ArrayList<Integer>> values) {
+        ArrayList<ArrayList<ArrayList<Integer>>> newVals = new ArrayList<ArrayList<ArrayList<Integer>>>();
+        for(int i = 0; i < values.size(); i++) {
+            ArrayList<ArrayList<Integer>> rowCol = new ArrayList<ArrayList<Integer>>();
+            for(int j = 0; j < values.get(i).size(); j++) {
+                ArrayList<Integer> avails = new ArrayList<Integer>();
+                for(int k = 0; k < length; k++) {
+                    avails.add(k);
+                }
+                rowCol.add(avails);
+            }
+            newVals.add(rowCol);
+        }
+        return newVals;
     }
 
     /*
@@ -266,15 +289,15 @@ public class Picross {
                     }
                     else {
                         // Check how many spaces are available for the piece to be placed
-                        ArrayList<Integer> avails = checkAvailability("r", i, j); 
+                        checkAvailability("r", i, j); 
                         
                         // If there's only one spot available, fill it
-                        if(avails.size() == 1) {
-                            int pos = avails.get(0);
+                        if(rAvails.get(i).get(j).size() == 1) {
+                            int pos = rAvails.get(i).get(j).get(0);
                             fill("r", i, j, pos);
                         } else {
                             
-                            checkOverlap("r", i, j, avails, filledOverlaps, possibles);
+                            checkOverlap("r", i, j, rAvails.get(i).get(j), filledOverlaps, possibles);
                         }
                     }
                 }
@@ -307,12 +330,12 @@ public class Picross {
                     }
                     else {
                         // Check how many spaces are available for the piece to be placed
-                        ArrayList<Integer> avails = checkAvailability("c", i, j);
-                        if(avails.size() == 1) {
-                            int pos = avails.get(0);
+                        checkAvailability("c", i, j);
+                        if(cAvails.get(i).get(j).size() == 1) {
+                            int pos = cAvails.get(i).get(j).get(0);
                             fill("c", i, j, pos);
                         } else {
-                            checkOverlap("c", i, j, avails, filledOverlaps, possibles);
+                            checkOverlap("c", i, j, cAvails.get(i).get(j), filledOverlaps, possibles);
                         }
                     }
                 }
@@ -361,7 +384,7 @@ public class Picross {
     }
 
     /*
-    fillCompletes will fill all empty spaces on a fully completed row with "." Strings
+    fillCompletes will fill all empty spaces on a fully completed row with "."s 
     */
     private void fillCompletes() {
         for(int i = 0; i < length; i++) {
@@ -415,7 +438,7 @@ public class Picross {
     val:    The value of the row or column
     n:      The index within the arrayList of numbers
     */
-    private ArrayList<Integer> checkAvailability(String rC, int val, int n) {
+    private void checkAvailability(String rC, int val, int n) {
         ArrayList<Integer> avail = new ArrayList<Integer>();
         int len, afterLen, beforeLen;
         boolean anchor, validAnchor;
@@ -452,7 +475,9 @@ public class Picross {
                     if (!validAnchor) valid = false;
                 }
                 if(valid) avail.add(i);
+                if(!valid) rAvails.get(val).get(n).remove(Integer.valueOf(i));
             }
+            // System.out.println(rC + " " + val + " n " + n + " length " + len + " b4len " + beforeLen + " afterlen " + afterLen + ": " + rAvails.get(val).get(n));
         } else {
             len = cols.get(val).get(n);
             afterLen = 0;
@@ -486,20 +511,24 @@ public class Picross {
                     if (!validAnchor) valid = false;
                 }
                 if(valid) avail.add(i);
+                if(!valid) cAvails.get(val).get(n).remove(Integer.valueOf(i));
             }
+            // System.out.println(rC + " " + val + " n " + n + " length " + len + " b4len " + beforeLen + " afterlen " + afterLen + ": " + cAvails.get(val).get(n));
         }
         // System.out.println(rC + " " + val + " n " + n + " length " + len + " b4len " + beforeLen + " afterlen " + afterLen + ": " + avail);
-        return avail;
+        // return avail;
     }
 
     /*
     checkOverlap will determine if there are overlapping spaces as a result of the available placements
         It will place an "X" on any space that is overlapped by ALL projections
     Parameters: 
-    rC:     Will equal either "r" or "c"
-    val:    The value of the row or column
-    n:      The index within the arrayList of numbers
-    avails: The list of potential starting places
+    rC:             Will equal either "r" or "c"
+    val:            The value of the row or column
+    n:              The index within the arrayList of numbers
+    avails:         The list of potential starting places
+    filledOverlaps: The list of which spaces were filled via overlap
+    possibles:      The array of which positions are possible/impossible to be filled with that number
     */
     private void checkOverlap(String rC, int val, int n, ArrayList<Integer> avails, ArrayList<Integer> filledOverlaps, boolean[] possibles) {
         boolean[] overlaps = new boolean[length];
