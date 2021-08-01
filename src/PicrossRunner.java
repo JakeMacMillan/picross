@@ -17,7 +17,7 @@ public class PicrossRunner {
     }
 
     public static void main(String[] args) throws IOException{
-        Scanner inFile = new Scanner(new File("inputFiles/hanjie_big_3.txt"));
+        Scanner inFile = new Scanner(new File("inputFiles/hanjie_big_2.txt"));
         ArrayList<String> allRows = new ArrayList<String>();
         while(inFile.hasNext()) {
             allRows.add(inFile.nextLine().strip());

@@ -2,7 +2,6 @@ import java.util.Scanner;
 import java.util.ArrayList;
 
 public class Picross {
-
     String[][] board;
     boolean[][] hLocked;
     boolean[][] vLocked;
@@ -184,7 +183,7 @@ public class Picross {
             for(int j = 0; j < greatestRows; j++) {
                 System.out.print("  ");
             }
-            System.out.print("\t|");
+            System.out.print(" |");
             for(int j = 0; j < length; j++) {
                 int cSize = cols.get(j).size();
                 if(cSize >= i) 
@@ -194,10 +193,10 @@ public class Picross {
             }
             System.out.println();
         }
-        for(int i = 0; i < (greatestRows * 3) - 1; i++) {
-            System.out.print("-");
+        for(int j = 0; j < greatestRows; j++) {
+            System.out.print("  ");
         }
-        System.out.print("+");
+        System.out.print(" |");
         for(int i = 0; i < length * 2; i++) {
             System.out.print("-");
         }
@@ -211,7 +210,7 @@ public class Picross {
                     else System.out.print("✓ "); // If the value has been guessed
                 else System.out.print("  ");
             }
-            System.out.print("\t|");
+            System.out.print(" |");
 
             for(int j = 0; j < length; j++) {
                 System.out.print(board[i][j] + " ");
@@ -285,10 +284,10 @@ public class Picross {
                     board[i][filledOverlaps.get(k) + 1] = ".";
                 }
             }
-            System.out.println("r " + i);
-            printArr(possibles);
+            // System.out.println("r " + i);
+            // printArr(possibles);
             for(int k = 0; k < length; k++) {
-                if(!possibles[k]) {
+                if(!possibles[k] && board[i][k].equals(" ")) {
                     board[i][k] = ".";
                 }
             }
@@ -304,8 +303,7 @@ public class Picross {
                     else if(board[length - 1][i].equals("X") && j == cSize - 1) { // If last number is at bottom of column and there's sufficient space, fill it
                         if(enoughSpace("c", i, cols.get(i).get(j), length-1, 0)) {
                             fill("c", i, j, length-cols.get(i).get(j));
-                        }
-                        
+                        } 
                     }
                     else {
                         // Check how many spaces are available for the piece to be placed
@@ -324,10 +322,10 @@ public class Picross {
                     board[filledOverlaps.get(k) + 1][i] = ".";
                 }
             }
-            System.out.println("c " + i);
-            printArr(possibles);
+            // System.out.println("c " + i);
+            // printArr(possibles);
             for(int k = 0; k < length; k++) {
-                if(!possibles[k]) {
+                if(!possibles[k] && board[k][i].equals(" ")) {
                     board[k][i] = ".";
                 }
             }
@@ -420,6 +418,7 @@ public class Picross {
     private ArrayList<Integer> checkAvailability(String rC, int val, int n) {
         ArrayList<Integer> avail = new ArrayList<Integer>();
         int len, afterLen, beforeLen;
+        boolean anchor, validAnchor;
         if(rC.equals("r")) {
             len = rows.get(val).get(n);
             afterLen = 0;
@@ -432,6 +431,11 @@ public class Picross {
                 afterLen += 1; // for the gap
                 afterLen += rows.get(val).get(i);
             }
+            anchor = false;
+            if(beforeLen == 0 && afterLen == 0) {
+                anchor = checkAnchor(rC, val);
+            }
+            // System.out.println(rC + " " + val + " anchor: " + anchor);
             for(int i = 0; i < length; i++) {
                 boolean valid = true;
                 for(int j = 0; j < len; j++) {
@@ -442,6 +446,10 @@ public class Picross {
                         valid = false;
                         break;
                     }
+                }
+                if(anchor && valid) {
+                    validAnchor = verifyAnchor(rC, val, i, len);
+                    if (!validAnchor) valid = false;
                 }
                 if(valid) avail.add(i);
             }
@@ -457,6 +465,11 @@ public class Picross {
                 afterLen += 1; // for the gap
                 afterLen += cols.get(val).get(i);
             }
+            anchor = false;
+            if(beforeLen == 0 && afterLen == 0) {
+                anchor = checkAnchor(rC, val);
+            }
+            // System.out.println(rC + " " + val + " anchor: " + anchor);
             for(int i = 0; i < length; i++) {
                 boolean valid = true;
                 for(int j = 0; j < len; j++) {
@@ -467,6 +480,10 @@ public class Picross {
                         valid = false;
                         break;
                     }
+                }
+                if(anchor && valid) {
+                    validAnchor = verifyAnchor(rC, val, i, len);
+                    if (!validAnchor) valid = false;
                 }
                 if(valid) avail.add(i);
             }
@@ -524,7 +541,6 @@ public class Picross {
                 }
             }
         }
-
     }
 
     /*
@@ -585,5 +601,39 @@ public class Picross {
                 }
             }
         }
+    }
+
+    /*
+    verifyAnchor will determine whether the requested row/column has an anchor point on it
+        If there are any "X" characters on the row/col, return true
+    Parameters: 
+    rC:     Will equal either "r" or "c"
+    val:    The value of the row or column
+    */
+    private boolean checkAnchor(String rC, int val) {
+        for(int i = 0; i < length; i++) {
+            if(rC.equals("r") && board[val][i].equals("X")) return true;
+            if(rC.equals("c") && board[i][val].equals("X")) return true;
+        }
+        return false;
+    }
+
+    /*
+    verifyAnchor will confirm whether the current "valid" placement hits an anchor point
+        If any point on the placement hits an "X" return true
+    Parameters: 
+    rC:     Will equal either "r" or "c"
+    val:    The value of the row or column
+    n:      The index on that row/column to start
+    l:      The length of the tile to be placed
+    */
+    private boolean verifyAnchor(String rC, int val, int n, int l) {
+        // System.out.println("Len: " + l);
+        for(int i = 0; i < l; i++) {
+            // System.out.println(rC + " " + val + " ind " + i + " ");
+            if(rC.equals("r") && board[val][i+n].equals("X")) return true;
+            if(rC.equals("c") && board[i+n][val].equals("X")) return true;
+        }
+        return false;
     }
 }
