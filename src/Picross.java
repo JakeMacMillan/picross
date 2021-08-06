@@ -35,11 +35,13 @@ public class Picross {
         this.completedCols = new ArrayList<ArrayList<Boolean>>();
         this.greatestRows = 0;
         this.greatestCols = 0;
-        this.rAvails = initAvails(rows);
-        this.cAvails = initAvails(cols);
         initBoard();
         fillRequirements();
         initCompleted();
+        this.rAvails = initAvails(rows);
+        this.cAvails = initAvails(cols);
+        System.out.println(rAvails);
+        System.out.println(cAvails);
     }
 
     /*
@@ -104,13 +106,23 @@ public class Picross {
             ArrayList<ArrayList<Integer>> rowCol = new ArrayList<ArrayList<Integer>>();
             for(int j = 0; j < values.get(i).size(); j++) {
                 ArrayList<Integer> avails = new ArrayList<Integer>();
-                for(int k = 0; k < length; k++) {
+                int len = values.get(i).get(j), beforeLen = 0, afterLen = 0;
+                for(int k = j - 1; k >= 0; k--) {
+                    beforeLen += 1;
+                    beforeLen += values.get(i).get(k);
+                }
+                for(int k = j + 1; k < values.get(i).size(); k++) {
+                    afterLen += 1; // for the gap
+                    afterLen += values.get(i).get(k);
+                }
+                for(int k = beforeLen; k < length - (len + afterLen - 1); k++) {
                     avails.add(k);
                 }
                 rowCol.add(avails);
             }
             newVals.add(rowCol);
         }
+        System.out.println(newVals);
         return newVals;
     }
 
@@ -122,8 +134,8 @@ public class Picross {
         printBoard();
         Scanner in = new Scanner(System.in);
         easyFills();
-        System.out.println();
-        printBoard();
+        // System.out.println();
+        // printBoard();
         while(!gameOver()) {
             in.nextLine();
             sweep();
@@ -276,29 +288,16 @@ public class Picross {
             ArrayList<Integer> filledOverlaps = new ArrayList<Integer>();
             boolean[] possibles = new boolean[length];
             for(int j = 0; j < rSize; j++) { // Loop over all possible numbers within a row
-                if(!completedRows.get(i).get(j)) {
-                    if(board[i][0].equals("X") && j == 0) { // If number is at front of row and there's sufficient space, fill it
-                        if(enoughSpace("r", i, rows.get(i).get(j), 0, 1)) {
-                            fill("r", i, j, 0);
-                        }
-                    }
-                    else if(board[i][length - 1].equals("X") && j == rSize - 1) { // If last number is at end of row and there's sufficient space, fill it
-                        if(enoughSpace("r", i, rows.get(i).get(j), length-1, 0)) {
-                            fill("r", i, j, length-rows.get(i).get(j));
-                        }
-                    }
-                    else {
-                        // Check how many spaces are available for the piece to be placed
-                        checkAvailability("r", i, j); 
+                if(!completedRows.get(i).get(j)) {           
+                    checkAvailability("r", i, j); 
+                    
+                    // If there's only one spot available, fill it
+                    if(rAvails.get(i).get(j).size() == 1) {
+                        int pos = rAvails.get(i).get(j).get(0);
+                        fill("r", i, j, pos);
+                    } else {
                         
-                        // If there's only one spot available, fill it
-                        if(rAvails.get(i).get(j).size() == 1) {
-                            int pos = rAvails.get(i).get(j).get(0);
-                            fill("r", i, j, pos);
-                        } else {
-                            
-                            checkOverlap("r", i, j, rAvails.get(i).get(j), filledOverlaps, possibles);
-                        }
+                        checkOverlap("r", i, j, rAvails.get(i).get(j), filledOverlaps, possibles);
                     }
                 }
             }
@@ -318,25 +317,14 @@ public class Picross {
             possibles = new boolean[length];
             for(int j = 0; j < cSize; j++) {
                 if(!completedCols.get(i).get(j)) {
-                    if(board[0][i].equals("X") && j == 0) { // If number is at top of column and there's sufficient space, fill it
-                        if(enoughSpace("c", i, cols.get(i).get(j), 0, 1)) {
-                            fill("c", i, j, 0);
-                        }
-                    }
-                    else if(board[length - 1][i].equals("X") && j == cSize - 1) { // If last number is at bottom of column and there's sufficient space, fill it
-                        if(enoughSpace("c", i, cols.get(i).get(j), length-1, 0)) {
-                            fill("c", i, j, length-cols.get(i).get(j));
-                        } 
-                    }
-                    else {
-                        // Check how many spaces are available for the piece to be placed
-                        checkAvailability("c", i, j);
-                        if(cAvails.get(i).get(j).size() == 1) {
-                            int pos = cAvails.get(i).get(j).get(0);
-                            fill("c", i, j, pos);
-                        } else {
-                            checkOverlap("c", i, j, cAvails.get(i).get(j), filledOverlaps, possibles);
-                        }
+                    // Check how many spaces are available for the piece to be placed
+                    checkAvailability("c", i, j);
+                    if(cAvails.get(i).get(j).size() == 1) {
+                        System.out.println("FILLING COLUMN " + i + " VALUE " + j);
+                        int pos = cAvails.get(i).get(j).get(0);
+                        fill("c", i, j, pos);
+                    } else {
+                        checkOverlap("c", i, j, cAvails.get(i).get(j), filledOverlaps, possibles);
                     }
                 }
             }
@@ -430,6 +418,7 @@ public class Picross {
             completedCols.get(val).set(n, true);
         }
     }
+    
     /*
     checkAvailability will the list of available positions to place the desired length in the specified row/col
         The return list will contain valid starting positions moving rightward or downward
@@ -439,33 +428,38 @@ public class Picross {
     n:      The index within the arrayList of numbers
     */
     private void checkAvailability(String rC, int val, int n) {
-        ArrayList<Integer> avail = new ArrayList<Integer>();
-        int len, afterLen, beforeLen;
+        int len;
         boolean anchor, validAnchor;
         if(rC.equals("r")) {
             len = rows.get(val).get(n);
-            afterLen = 0;
-            beforeLen = 0;
-            for(int i = n - 1; i >= 0; i--) {
-                beforeLen += 1;
-                beforeLen += rows.get(val).get(i);
-            }
-            for(int i = n + 1; i < rows.get(val).size(); i++) {
-                afterLen += 1; // for the gap
-                afterLen += rows.get(val).get(i);
-            }
             anchor = false;
-            if(beforeLen == 0 && afterLen == 0) {
-                anchor = checkAnchor(rC, val);
+            int lastInd = rAvails.get(val).get(n).size() - 1;
+            // if(n == 0 || n == rAvails.get(val).size() - 1) {
+            if(rAvails.get(val).size() == 1) {
+                anchor = checkAnchor(rC, val, rAvails.get(val).get(n).get(0), rAvails.get(val).get(n).get(lastInd) + len);
             }
-            // System.out.println(rC + " " + val + " anchor: " + anchor);
-            for(int i = 0; i < length; i++) {
+            System.out.println(rC + " " + val + " anchor: " + anchor);
+            for(int h = 0; h < rAvails.get(val).get(n).size(); h++) {
+                int i = rAvails.get(val).get(n).get(h);
                 boolean valid = true;
+                // Check if value is at start or end of row, fill accordingly
+                if(n == 0 && board[val][i].equals("X") && filledLeftUp(rC, val, i-1)) {
+                    ArrayList<Integer> newList = new ArrayList<Integer>();
+                    newList.add(i);
+                    rAvails.get(val).set(n, newList);
+                    return;
+                }
+                if(n == rAvails.get(val).size() - 1 && board[val][i + len - 1].equals("X") && filledRightDown(rC, val, i + len)) {
+                    ArrayList<Integer> newList = new ArrayList<Integer>();
+                    newList.add(i);
+                    rAvails.get(val).set(n, newList);
+                    return;
+                }
+
                 for(int j = 0; j < len; j++) {
-                    int totalAfterLen = len - 1 + afterLen;
                     // Checks if the current tile placement would go out of bounds, cross a ".", cross a locked tile, or exempt the total before/after from fitting
                     //   Does NOT currently check if the next value in the sequence will fit based on current board state, only if it will go out of bounds (much to my chagrin)
-                    if(i+j >= length || board[val][i+j].equals(".") || hLocked[val][i+j] || i + totalAfterLen > length - 1 || i - beforeLen < 0) {
+                    if(i+j >= length || board[val][i+j].equals(".") || hLocked[val][i+j]) {
                         valid = false;
                         break;
                     }
@@ -474,34 +468,41 @@ public class Picross {
                     validAnchor = verifyAnchor(rC, val, i, len);
                     if (!validAnchor) valid = false;
                 }
-                if(valid) avail.add(i);
-                if(!valid) rAvails.get(val).get(n).remove(Integer.valueOf(i));
+                if(!valid) {
+                    rAvails.get(val).get(n).remove(Integer.valueOf(i));
+                    h--;
+                }
             }
-            // System.out.println(rC + " " + val + " n " + n + " length " + len + " b4len " + beforeLen + " afterlen " + afterLen + ": " + rAvails.get(val).get(n));
+            System.out.println(rC + " " + val + " n " + n + " length " + len + ": " + rAvails.get(val).get(n));
         } else {
             len = cols.get(val).get(n);
-            afterLen = 0;
-            beforeLen = 0;
-            for(int i = n - 1; i >= 0; i--) {
-                beforeLen += 1;
-                beforeLen += cols.get(val).get(i);
-            }
-            for(int i = n + 1; i < cols.get(val).size(); i++) {
-                afterLen += 1; // for the gap
-                afterLen += cols.get(val).get(i);
-            }
             anchor = false;
-            if(beforeLen == 0 && afterLen == 0) {
-                anchor = checkAnchor(rC, val);
+            if(cAvails.get(val).size() == 1) {
+                int lastInd = cAvails.get(val).get(n).size() - 1;
+                anchor = checkAnchor(rC, val, cAvails.get(val).get(n).get(0), cAvails.get(val).get(n).get(lastInd) + len);
             }
-            // System.out.println(rC + " " + val + " anchor: " + anchor);
-            for(int i = 0; i < length; i++) {
+            System.out.println(rC + " " + val + " anchor: " + anchor);
+            for(int h = 0; h < cAvails.get(val).get(n).size(); h++) {
+                int i = cAvails.get(val).get(n).get(h);
                 boolean valid = true;
+                // Check if value is either at start or end of column, fill accordingly
+                if(n == 0 && board[i][val].equals("X") && filledLeftUp(rC, val, i-1)) {
+                    ArrayList<Integer> newList = new ArrayList<Integer>();
+                    newList.add(i);
+                    cAvails.get(val).set(n, newList);
+                    return;
+                }
+                if(n == cAvails.get(val).size() - 1 && board[i + len - 1][val].equals("X") && filledRightDown(rC, val, i + len)) {
+                    ArrayList<Integer> newList = new ArrayList<Integer>();
+                    newList.add(i);
+                    cAvails.get(val).set(n, newList);
+                    return;
+                }
+
                 for(int j = 0; j < len; j++) {
-                    int totalAfterLen = len - 1 + afterLen;
                     // Checks if the current tile placement would go out of bounds, cross a ".", cross a locked tile, or exempt the total before/after from fitting
                     //   Does NOT currently check if the next value in the sequence will fit based on current board state, only if it will go out of bounds (much to my chagrin)
-                    if(i+j >= length || board[i+j][val].equals(".") || vLocked[i+j][val] || i + totalAfterLen > length - 1 || i - beforeLen < 0) {
+                    if(i+j >= length || board[i+j][val].equals(".") || vLocked[i+j][val]) {
                         valid = false;
                         break;
                     }
@@ -510,13 +511,13 @@ public class Picross {
                     validAnchor = verifyAnchor(rC, val, i, len);
                     if (!validAnchor) valid = false;
                 }
-                if(valid) avail.add(i);
-                if(!valid) cAvails.get(val).get(n).remove(Integer.valueOf(i));
+                if(!valid) {
+                    cAvails.get(val).get(n).remove(Integer.valueOf(i));
+                    h--;
+                }
             }
-            // System.out.println(rC + " " + val + " n " + n + " length " + len + " b4len " + beforeLen + " afterlen " + afterLen + ": " + cAvails.get(val).get(n));
+            System.out.println(rC + " " + val + " n " + n + " length " + len + ": " + cAvails.get(val).get(n));
         }
-        // System.out.println(rC + " " + val + " n " + n + " length " + len + " b4len " + beforeLen + " afterlen " + afterLen + ": " + avail);
-        // return avail;
     }
 
     /*
@@ -638,9 +639,11 @@ public class Picross {
     Parameters: 
     rC:     Will equal either "r" or "c"
     val:    The value of the row or column
+    start:  Which index to start looking
+    end:    Which index to stop looking
     */
-    private boolean checkAnchor(String rC, int val) {
-        for(int i = 0; i < length; i++) {
+    private boolean checkAnchor(String rC, int val, int start, int end) {
+        for(int i = start; i < end; i++) {
             if(rC.equals("r") && board[val][i].equals("X")) return true;
             if(rC.equals("c") && board[i][val].equals("X")) return true;
         }
@@ -664,5 +667,37 @@ public class Picross {
             if(rC.equals("c") && board[i+n][val].equals("X")) return true;
         }
         return false;
+    }
+
+    /*
+    filledLeftUp will confirm whether all spaces to the left/up from position n in the row/col
+        indicated by val are filled by "."s
+    Parameters:
+    rC:     Will equal either "r" or "c"
+    val:    The value of the row or column
+    n:      The index on that row/column to start
+    */
+    private boolean filledLeftUp(String rC, int val, int n) {
+        for(int i = n; i >= 0; i--) {
+            if(rC.equals("r") && board[val][i] != ".") return false;
+            if(rC.equals("c") && board[i][val] != ".") return false;
+        }
+        return true;
+    }
+
+    /*
+    filledRightDown will confirm whether all spaces to the right/down from position n in the row/col
+        indicated by val are filled by "."s
+    Parameters:
+    rC:     Will equal either "r" or "c"
+    val:    The value of the row or column
+    n:      The index on that row/column to start
+    */
+    private boolean filledRightDown(String rC, int val, int n) {
+        for(int i = n; i < length; i++) {
+            if(rC.equals("r") && board[val][i] != ".") return false;
+            if(rC.equals("c") && board[i][val] != ".") return false;
+        }
+        return true;
     }
 }
